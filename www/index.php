@@ -13,28 +13,27 @@ $app -> register(new Silex\Provider\DoctrineServiceProvider(),
 		'db.options' => array(
 			'driver' => 'pdo_mysql',
 			'host' => '127.0.0.1',
+			'port' => null,
 			'user' => 'root',
 			'password' => 'root',
 			'charset' => 'utf8',
-			'dbbame' => 'tcm_rest'
+			'dbname' => 'tcm_rest'
 		)
 	)
 );
 
 $app -> get('/user/{id}', function($id) use ($app) {
-	$sql = "SELECT * FROM user WHERE id = ?";
+	$sql = "SELECT id, lastname, firstname, email, role FROM user WHERE id = ?";
 	$post = $app['db']->fetchAssoc($sql, array((int)$id));
-
-	return print_r($sql);
-	//"<h1>{$post['title']}</h1>".
-	//"<p>{$post['body']}</p>";
+	if (!$post)
+		{
+			$error = array('message' => 'The user was not found.');
+			return $app->json($error, 404);
+		}
+	return $app->json($post);
 });
 
 $app -> get('/', function() use ($app, $request) {
-
-	//$article = new Entities\User();
-	//$app['db.orm.em']->persist($article);
-	//$app['db.orm.em']->flush();
 
 	return '';
 });
