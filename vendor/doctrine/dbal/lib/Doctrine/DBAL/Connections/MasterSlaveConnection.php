@@ -13,7 +13,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * This software consists of voluntary contributions made by many individuals
- * and is licensed under the MIT license. For more information, see
+ * and is licensed under the LGPL. For more information, see
  * <http://www.doctrine-project.org>.
  */
 
@@ -91,14 +91,6 @@ class MasterSlaveConnection extends Connection
     protected $connections = array('master' => null, 'slave' => null);
 
     /**
-     * You can keep the slave connection and then switch back to it
-     * during the request if you know what you are doing.
-     *
-     * @var bool
-     */
-    protected $keepSlave = false;
-
-    /**
      * Create Master Slave Connection
      *
      * @param array $params
@@ -120,8 +112,6 @@ class MasterSlaveConnection extends Connection
             $params['slaves'][$slaveKey]['driver'] = $params['driver'];
         }
 
-        $this->keepSlave = isset($params['keepSlave']) ? (bool)$params['keepSlave'] : false;
-
         parent::__construct($params, $driver, $config, $eventManager);
     }
 
@@ -138,26 +128,16 @@ class MasterSlaveConnection extends Connection
     /**
      * {@inheritDoc}
      */
-    public function connect($connectionName = null)
+    public function connect($connectionName = 'slave')
     {
-        $requestedConnectionChange = ($connectionName !== null);
-        $connectionName            = $connectionName ?: 'slave';
-
         if ( $connectionName !== 'slave' && $connectionName !== 'master' ) {
             throw new \InvalidArgumentException("Invalid option to connect(), only master or slave allowed.");
-        }
-
-        // If we have a connection open, and this is not an explicit connection
-        // change request, then abort right here, because we are already done.
-        // This prevents writes to the slave in case of "keepSlave" option enabled.
-        if ($this->_conn && !$requestedConnectionChange) {
-            return false;
         }
 
         $forceMasterAsSlave = false;
 
         if ($this->getTransactionNestingLevel() > 0) {
-            $connectionName     = 'master';
+            $connectionName = 'master';
             $forceMasterAsSlave = true;
         }
 
@@ -171,16 +151,12 @@ class MasterSlaveConnection extends Connection
         }
 
         if ($connectionName === 'master') {
-            // Set slave connection to master to avoid invalid reads
-            if ($this->connections['slave'] && ! $this->keepSlave) {
+            /** Set slave connection to master to avoid invalid reads */
+            if ($this->connections['slave']) {
                 unset($this->connections['slave']);
             }
 
-            $this->connections['master'] = $this->_conn = $this->connectTo($connectionName);
-
-            if ( ! $this->keepSlave) {
-                $this->connections['slave'] = $this->connections['master'];
-            }
+            $this->connections['master'] = $this->connections['slave'] = $this->_conn = $this->connectTo($connectionName);
         } else {
             $this->connections['slave'] = $this->_conn = $this->connectTo($connectionName);
         }
@@ -252,10 +228,10 @@ class MasterSlaveConnection extends Connection
     /**
      * {@inheritDoc}
      */
-    public function rollBack()
+    public function rollback()
     {
         $this->connect('master');
-        return parent::rollBack();
+        return parent::rollback();
     }
 
     /**

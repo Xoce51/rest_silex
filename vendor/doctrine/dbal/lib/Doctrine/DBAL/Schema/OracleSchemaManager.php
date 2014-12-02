@@ -15,7 +15,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * This software consists of voluntary contributions made by many individuals
- * and is licensed under the MIT license. For more information, see
+ * and is licensed under the LGPL. For more information, see
  * <http://www.phpdoctrine.org>.
  */
 
@@ -109,14 +109,8 @@ class OracleSchemaManager extends AbstractSchemaManager
             $tableColumn['column_name'] = '';
         }
 
-        if ($tableColumn['data_default'] === 'NULL') {
+        if (stripos($tableColumn['data_default'], 'NULL') !== null) {
             $tableColumn['data_default'] = null;
-        }
-
-        if (null !== $tableColumn['data_default']) {
-            // Default values returned from database are enclosed in single quotes.
-            // Sometimes trailing spaces are also encountered.
-            $tableColumn['data_default'] = trim(trim($tableColumn['data_default']), "'");
         }
 
         $precision = null;
@@ -205,7 +199,7 @@ class OracleSchemaManager extends AbstractSchemaManager
     protected function _getPortableTableForeignKeysList($tableForeignKeys)
     {
         $list = array();
-        foreach ($tableForeignKeys as $value) {
+        foreach ($tableForeignKeys as $key => $value) {
             $value = \array_change_key_case($value, CASE_LOWER);
             if (!isset($list[$value['constraint_name']])) {
                 if ($value['delete_rule'] == "NO ACTION") {
@@ -225,7 +219,7 @@ class OracleSchemaManager extends AbstractSchemaManager
         }
 
         $result = array();
-        foreach($list as $constraint) {
+        foreach($list AS $constraint) {
             $result[] = new ForeignKeyConstraint(
                 array_values($constraint['local']), $constraint['foreignTable'],
                 array_values($constraint['foreign']),  $constraint['name'],

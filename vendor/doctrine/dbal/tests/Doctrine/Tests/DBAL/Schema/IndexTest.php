@@ -83,22 +83,6 @@ class IndexTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @group DBAL-220
-     */
-    public function testFlags()
-    {
-        $idx1 = $this->createIndex();
-        $this->assertFalse($idx1->hasFlag('clustered'));
-
-        $idx1->addFlag('clustered');
-        $this->assertTrue($idx1->hasFlag('clustered'));
-        $this->assertTrue($idx1->hasFlag('CLUSTERED'));
-
-        $idx1->removeFlag('clustered');
-        $this->assertFalse($idx1->hasFlag('clustered'));
-    }
-
-    /**
      * @group DBAL-285
      */
     public function testIndexQuotes()

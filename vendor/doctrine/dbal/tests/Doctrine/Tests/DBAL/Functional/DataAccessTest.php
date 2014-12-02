@@ -189,7 +189,7 @@ class DataAccessTest extends \Doctrine\Tests\DbalFunctionalTestCase
     public function testFetchBoth()
     {
         $sql = "SELECT test_int, test_string FROM fetch_table WHERE test_int = ? AND test_string = ?";
-        $row = $this->_conn->executeQuery($sql, array(1, 'foo'))->fetch(\PDO::FETCH_BOTH);
+        $row = $this->_conn->executeQuery($sql, array(1, 'foo'))->fetch();
 
         $this->assertTrue($row !== false);
 
@@ -408,7 +408,13 @@ class DataAccessTest extends \Doctrine\Tests\DbalFunctionalTestCase
     public function testFetchAllSupportFetchClass()
     {
         $this->skipOci8AndMysqli();
-        $this->setupFixture();
+
+        $this->_conn->executeQuery('DELETE FROM fetch_table')->execute();
+        $this->_conn->insert('fetch_table', array(
+            'test_int'      => 1,
+            'test_string'   => 'foo',
+            'test_datetime' => '2010-01-01 10:10:10'
+        ));
 
         $sql    = "SELECT test_int, test_string, test_datetime FROM fetch_table";
         $stmt   = $this->_conn->prepare($sql);
@@ -445,53 +451,6 @@ class DataAccessTest extends \Doctrine\Tests\DbalFunctionalTestCase
     }
 
     /**
-     * @group DBAL-214
-     */
-    public function testSetFetchModeClassFetchAll()
-    {
-        $this->skipOci8AndMysqli();
-        $this->setupFixture();
-
-        $sql = "SELECT * FROM fetch_table";
-        $stmt = $this->_conn->query($sql);
-        $stmt->setFetchMode(\PDO::FETCH_CLASS, __NAMESPACE__ . '\\MyFetchClass', array());
-
-        $results = $stmt->fetchAll();
-
-        $this->assertEquals(1, count($results));
-        $this->assertInstanceOf(__NAMESPACE__.'\\MyFetchClass', $results[0]);
-
-        $this->assertEquals(1, $results[0]->test_int);
-        $this->assertEquals('foo', $results[0]->test_string);
-        $this->assertStringStartsWith('2010-01-01 10:10:10', $results[0]->test_datetime);
-    }
-
-    /**
-     * @group DBAL-214
-     */
-    public function testSetFetchModeClassFetch()
-    {
-        $this->skipOci8AndMysqli();
-        $this->setupFixture();
-
-        $sql = "SELECT * FROM fetch_table";
-        $stmt = $this->_conn->query($sql);
-        $stmt->setFetchMode(\PDO::FETCH_CLASS, __NAMESPACE__ . '\\MyFetchClass', array());
-
-        $results = array();
-        while ($row = $stmt->fetch()) {
-            $results[] = $row;
-        }
-
-        $this->assertEquals(1, count($results));
-        $this->assertInstanceOf(__NAMESPACE__.'\\MyFetchClass', $results[0]);
-
-        $this->assertEquals(1, $results[0]->test_int);
-        $this->assertEquals('foo', $results[0]->test_string);
-        $this->assertStringStartsWith('2010-01-01 10:10:10', $results[0]->test_datetime);
-    }
-
-    /**
      * @group DBAL-257
      */
     public function testEmptyFetchColumnReturnsFalse()
@@ -499,31 +458,6 @@ class DataAccessTest extends \Doctrine\Tests\DbalFunctionalTestCase
         $this->_conn->executeQuery('DELETE FROM fetch_table')->execute();
         $this->assertFalse($this->_conn->fetchColumn('SELECT test_int FROM fetch_table'));
         $this->assertFalse($this->_conn->query('SELECT test_int FROM fetch_table')->fetchColumn());
-    }
-
-    /**
-     * @group DBAL-339
-     */
-    public function testSetFetchModeOnDbalStatement()
-    {
-        $sql = "SELECT test_int, test_string FROM fetch_table WHERE test_int = ? AND test_string = ?";
-        $stmt = $this->_conn->executeQuery($sql, array(1, "foo"));
-        $stmt->setFetchMode(\PDO::FETCH_NUM);
-
-        while ($row = $stmt->fetch()) {
-            $this->assertTrue(isset($row[0]));
-            $this->assertTrue(isset($row[1]));
-        }
-    }
-
-    private function setupFixture()
-    {
-        $this->_conn->executeQuery('DELETE FROM fetch_table')->execute();
-        $this->_conn->insert('fetch_table', array(
-            'test_int'      => 1,
-            'test_string'   => 'foo',
-            'test_datetime' => '2010-01-01 10:10:10'
-        ));
     }
 
     private function skipOci8AndMysqli()
