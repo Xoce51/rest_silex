@@ -23,9 +23,7 @@ $app -> register(new Silex\Provider\DoctrineServiceProvider(),
 );
 
 $app->get('/users/{id}/', function($id) use ($app) {
-	$sql = "SELECT id, lastname, firstname, email, role FROM user WHERE id = ?";
-	$post = $app['db']->fetchAssoc($sql, array((int)$id));
-	if (!$post)
+	if (!$post || empty($id))
 		{
 			$error = array('status' => 404, 'message' => 'Not found');
 			return $app->json($error, 404);
@@ -35,13 +33,14 @@ $app->get('/users/{id}/', function($id) use ($app) {
 			$error = $error = array('status' => 401, 'message' => 'Not found');
 			return $app->json($error, 401);
 		}
+	$sql = "SELECT id, lastname, firstname, email, role FROM user WHERE id = ?";
+	$post = $app['db']->fetchAssoc($sql, array((int)$id));
 	return $app->json($post);
 });
 
 $app->get('/user/{id}/', function($id) use ($app) {
-	$sql = "SELECT id, lastname, firstname, email, role FROM user WHERE id = ?";
-	$post = $app['db']->fetchAssoc($sql, array((int)$id));
-	if (!$post)
+
+	if (!$post || empty($id))
 		{
 			$error = array('status' => 404, 'message' => 'not found');
 			return $app->json($error, 404);
@@ -51,13 +50,27 @@ $app->get('/user/{id}/', function($id) use ($app) {
 			$error = $error = array('status' => 401, 'message' => 'Not found');
 			return $app->json($error, 401);
 		}
+	$sql = "SELECT id, lastname, firstname, email, role FROM user WHERE id = ?";
+	$post = $app['db']->fetchAssoc($sql, array((int)$id));
 	return $app->json($post);
 });
 
-$app -> get('/', function() use ($app, $request) {
-
+$app->get('/', function() use ($app, $request) {
 	return $app->json('');
 });
 
-$app -> run();
+$app->error(function (\Exception $e, $code) use ($app) {
+	switch ($code) {
+	  case 404:
+      $error = array('status' => 404, 'message' => 'not found');
+      break;
+    default:
+      $error = array('message' => 'We are sorry, but something went terribly wrong.');
+			break;
+  }
+
+    return $app->json($error);
+});
+
+$app->run();
 ?>
