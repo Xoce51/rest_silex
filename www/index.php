@@ -64,6 +64,9 @@ $app->error(function (\Exception $e, $code) use ($app) {
 	  case 404:
       $error = array('status' => 404, 'message' => 'not found');
       break;
+		case 500:
+      $error = array('status' => 500, 'message' => 'internal error');
+      break;
     default:
       $error = array('message' => 'We are sorry, but something went terribly wrong.');
 			break;
