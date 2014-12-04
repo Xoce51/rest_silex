@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../vendor/autoload.php';
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Request;
 use \Doctrine\Common\Cache\ApcCache;
 use \Doctrine\Common\Cache\ArrayCache;
 
@@ -21,7 +22,39 @@ $app -> register(new Silex\Provider\DoctrineServiceProvider(),
 		)
 	)
 );
+// get post url
+$app->post('/users/', function (Request $request) use ($app) {
+	$data = array("lastname", "firstname", "email", "password", "role");
+	$post = array();
 
+	# populate data
+	foreach($data as $d)
+		$post[$d] = $request->get($d);
+	
+	# check if user exist
+	$sql = "SELECT id FROM user WHERE lastname = ? AND firstname = ?";
+	$save = $app['db']->fetchAssoc($sql, array($post['lastname'], $post['firstname']));
+	if ($save)
+		{
+			$message =  array('status' => 401, 'message' => 'User already exist');
+			return $app->json($message, 401);
+		}
+	
+	# insert user
+	$sql = "INSERT INTO user (lastname, firstname, email, password, role) VALUES (?, ?, ?, ?, ?)";
+	$insert = $app['db']->executeQuery($sql, array($post['lastname'], $post['firstname'], $post['email'], $post['password'],  $post['role']));
+	/*if ($insert)
+		{
+			$message =  array('status' => 501, 'message' => 'Error when saving data');
+			return $app->json($message, 501);
+		}
+	 * */
+  $message =  array('status' => 200, 'message' => 'Create new user');
+	//$message =  json_encode($insert);
+  return $app->json($message, 200);
+});
+
+// get route
 $app->get('/users/{id}/', function($id) use ($app) {
 	if (!$post || empty($id))
 		{
@@ -55,6 +88,8 @@ $app->get('/user/{id}/', function($id) use ($app) {
 	return $app->json($post);
 });
 
+
+// general route & error handler
 $app->get('/', function() use ($app, $request) {
 	return $app->json('');
 });
@@ -76,4 +111,5 @@ $app->error(function (\Exception $e, $code) use ($app) {
 });
 
 $app->run();
+
 ?>
