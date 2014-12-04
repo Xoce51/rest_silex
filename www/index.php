@@ -22,20 +22,41 @@ $app -> register(new Silex\Provider\DoctrineServiceProvider(),
 	)
 );
 
+$app->get('/users/{id}/', function($id) use ($app) {
+	$sql = "SELECT id, lastname, firstname, email, role FROM user WHERE id = ?";
+	$post = $app['db']->fetchAssoc($sql, array((int)$id));
+	if (!$post)
+		{
+			$error = array('status' => 404, 'message' => 'Not found');
+			return $app->json($error, 404);
+		}
+	else if ($post['role'] == 'admin')
+		{
+			$error = $error = array('status' => 401, 'message' => 'Not found');
+			return $app->json($error, 401);
+		}
+	return $app->json($post);
+});
+
 $app->get('/user/{id}/', function($id) use ($app) {
 	$sql = "SELECT id, lastname, firstname, email, role FROM user WHERE id = ?";
 	$post = $app['db']->fetchAssoc($sql, array((int)$id));
 	if (!$post)
 		{
-			$error = array('message' => 'The user was not found.');
+			$error = array('status' => 404, 'message' => 'not found');
 			return $app->json($error, 404);
+		}
+	else if ($post['role'] == 'admin')
+		{
+			$error = $error = array('status' => 401, 'message' => 'Not found');
+			return $app->json($error, 401);
 		}
 	return $app->json($post);
 });
 
 $app -> get('/', function() use ($app, $request) {
 
-	return '';
+	return $app->json('');
 });
 
 $app -> run();
