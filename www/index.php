@@ -22,7 +22,7 @@ $app -> register(new Silex\Provider\DoctrineServiceProvider(),
 	)
 );
 
-$app -> get('/user/{id}', function($id) use ($app) {
+$app->get('/user/{id}/', function($id) use ($app) {
 	$sql = "SELECT id, lastname, firstname, email, role FROM user WHERE id = ?";
 	$post = $app['db']->fetchAssoc($sql, array((int)$id));
 	if (!$post)
