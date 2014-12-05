@@ -56,6 +56,8 @@ $app->post('/users/', function (Request $request) use ($app) {
 
 // get route
 $app->get('/users/{id}/', function($id) use ($app) {
+	$sql = "SELECT id, lastname, firstname, email, role FROM user WHERE id = ?";
+	$post = $app['db']->fetchAssoc($sql, array((int)$id));
 	if (!$post || empty($id))
 		{
 			$error = array('status' => 404, 'message' => 'Not found');
@@ -66,13 +68,13 @@ $app->get('/users/{id}/', function($id) use ($app) {
 			$error = $error = array('status' => 401, 'message' => 'Not found');
 			return $app->json($error, 401);
 		}
-	$sql = "SELECT id, lastname, firstname, email, role FROM user WHERE id = ?";
-	$post = $app['db']->fetchAssoc($sql, array((int)$id));
 	return $app->json($post);
 });
 
 $app->get('/user/{id}/', function($id) use ($app) {
-
+	
+	$sql = "SELECT id, lastname, firstname, email, role FROM user WHERE id = ?";
+	$post = $app['db']->fetchAssoc($sql, array((int)$id));
 	if (!$post || empty($id))
 		{
 			$error = array('status' => 404, 'message' => 'not found');
@@ -83,8 +85,6 @@ $app->get('/user/{id}/', function($id) use ($app) {
 			$error = $error = array('status' => 401, 'message' => 'Not found');
 			return $app->json($error, 401);
 		}
-	$sql = "SELECT id, lastname, firstname, email, role FROM user WHERE id = ?";
-	$post = $app['db']->fetchAssoc($sql, array((int)$id));
 	return $app->json($post);
 });
 
@@ -109,7 +109,5 @@ $app->error(function (\Exception $e, $code) use ($app) {
 
     return $app->json($error);
 });
-
 $app->run();
-
 ?>
