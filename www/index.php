@@ -24,18 +24,22 @@ $app -> register(new Silex\Provider\DoctrineServiceProvider(),
 );
 
 // get delete url
-$app->delete('/user/{id}', function ($id) {
-	$sql = "DELETE * FROM user WHERE id = $id";
-	$message =  array('status' => 200, 'message' => 'Deleting user');
-	//$message =  json_encode($insert);
-	return $app->json($message, 200);
+$app->delete('/user/{id}/', function ($id) use ($app) {
+	$message = $app['db']->delete('user', array(
+	    'id' => $id,
+	));
+	$error =  array('status' => 500, 'message' => 'Something went wrong');
+	if ($message)
+		return $app->json($message, 200);
+	else
+		return $app->json($error, 500);
 });
 
 // get post url
 $app->post('/users/', function (Request $request) use ($app) {
 	$data = array("lastname", "firstname", "email", "password", "role");
 	$post = array();
-
+	# $request->request->all()
 	# populate data
 	foreach($data as $d)
 		$post[$d] = $request->get($d);
