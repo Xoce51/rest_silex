@@ -26,7 +26,7 @@ $app->register(new Silex\Provider\DoctrineServiceProvider(),
 $app->register(new Silex\Provider\SessionServiceProvider());
 
 // authentification
-$app->before(function() use ($app)
+$before = function(Request $request, Silex\Application $app)
 	{
 		if (!isset($_SERVER['PHP_AUTH_USER']))
 			{
@@ -35,23 +35,20 @@ $app->before(function() use ($app)
 				$response->setStatusCode(401, 'Please sign in.');
 				return $response;
 			}
-		$username = $app->escape($app['request']->server->get('PHP_AUTH_USER', false));
-		$password = $app->escape($app['request']->server->get('PHP_AUTH_PW'));
-		$pwd = $app['db']->fetchAssoc('SELECT password FROM user WHERE email = :email', array(
-			'email' => $username,
-		));
-		var_dump($pwd);
-		echo "\n";
-		var_dump(sha1($password) === $pwd["password"]);
-		if (!empty($pwd) && sha1($password) === $pwd["password"])
-		    $app['session']->set('user', array('username' => $username));
-		else {
-			$response = new Response();
-			$response->headers->set('WWW-Authenticate', sprintf('Basic realm="%s"', 'site_login'));
-			$response->setStatusCode(401, 'Please sign in.');
-			return $response;
-		}
-	});
+			$username = $app->escape($app['request']->server->get('PHP_AUTH_USER', false));
+			$password = $app->escape($app['request']->server->get('PHP_AUTH_PW'));
+			$pwd = $app['db']->fetchAssoc('SELECT password FROM user WHERE email = :email', array(
+				'email' => $username,
+			));
+			if (!empty($pwd) && sha1($password) === $pwd["password"])
+			    $app['session']->set('user', array('username' => $username));
+			else {
+				$response = new Response();
+				$response->headers->set('WWW-Authenticate', sprintf('Basic realm="%s"', 'site_login'));
+				$response->setStatusCode(401, 'Please sign in.');
+				return $response;
+			}
+	};
 // get delete url
 $app->delete('/rest_etna/users/{id}/', function ($id) use ($app) {
 	$message = $app['db']->delete('user', array(
@@ -62,7 +59,8 @@ $app->delete('/rest_etna/users/{id}/', function ($id) use ($app) {
 		return $app->json($message, 200);
 	else
 		return $app->json($error, 500);
-});
+})
+->before($before);
 
 # update url
 $app->put('/rest_etna/users/{id}/', function ($id) use ($app) {
@@ -78,7 +76,8 @@ $app->put('/rest_etna/users/{id}/', function ($id) use ($app) {
 		return $app->json( array('status' => 200, 'message' => 'Update done'), 200);
 	else
 		return $app->json($error, 500);
-});
+})
+->before($before);
 
 // get post url
 $app->post('/rest_etna/users/', function (Request $request) use ($app) {
@@ -109,7 +108,8 @@ $app->post('/rest_etna/users/', function (Request $request) use ($app) {
   $message =  array('status' => 200, 'message' => 'Create new user');
 	//$message =  json_encode($insert);
   return $app->json($message, 200);
-});
+})
+->before($before);
 
 // get route
 $app->get('/rest_etna/users/{id}/', function($id) use ($app) {
@@ -128,7 +128,8 @@ $app->get('/rest_etna/users/{id}/', function($id) use ($app) {
 		}
 	$post['id'] = (int) $post['id'];
 	return $app->json($post);
-});
+})
+->before($before);
 
 $app->get('/rest_etna/user/{id}/', function($id) use ($app)
 {
@@ -147,13 +148,15 @@ $app->get('/rest_etna/user/{id}/', function($id) use ($app)
 		}
 	$post['id'] = (int) $post['id'];
 	return $app->json($post);
-});
+})
+->before($before);
 
 
 // general route & error handler
 $app->get('/rest_etna/', function() use ($app) {
 	return $app->json('');
-});
+})
+->before($before);
 
 $app->error(function (\Exception $e, $code) use ($app) {
 	switch ($code) {
