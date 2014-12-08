@@ -29,7 +29,7 @@ $app->delete('/user/', function ($id) {
 	$message =  array('status' => 200, 'message' => 'Create new user');
 	//$message =  json_encode($insert);
 	return $app->json($message, 200);
-})
+});
 
 // get post url
 $app->post('/users/', function (Request $request) use ($app) {
@@ -67,6 +67,7 @@ $app->post('/users/', function (Request $request) use ($app) {
 $app->get('/users/{id}/', function($id) use ($app) {
 	$sql = "SELECT id, lastname, firstname, email, role FROM user WHERE id = ?";
 	$post = $app['db']->fetchAssoc($sql, array((int)$id));
+	$post['id'] = (int) $post['id'];
 	if (!$post || empty($id))
 		{
 			$error = array('status' => 404, 'message' => 'Not found');
@@ -84,6 +85,7 @@ $app->get('/user/{id}/', function($id) use ($app) {
 
 	$sql = "SELECT id, lastname, firstname, email, role FROM user WHERE id = ?";
 	$post = $app['db']->fetchAssoc($sql, array((int)$id));
+	$post['id'] = (int) $post['id'];
 	if (!$post || empty($id))
 		{
 			$error = array('status' => 404, 'message' => 'not found');
