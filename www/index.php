@@ -9,7 +9,7 @@ $app = new Silex\Application();
 $app['debug'] = true;
 
 // Register Doctrine DBAL
-$app -> register(new Silex\Provider\DoctrineServiceProvider(),
+$app->register(new Silex\Provider\DoctrineServiceProvider(),
 	array(
 		'db.options' => array(
 			'driver' => 'pdo_mysql',
@@ -22,9 +22,38 @@ $app -> register(new Silex\Provider\DoctrineServiceProvider(),
 		)
 	)
 );
+// use session
+$app->register(new Silex\Provider\SessionServiceProvider());
 
+// authentification
+$app->before(function() use ($app)
+	{
+		if (!isset($_SERVER['PHP_AUTH_USER']))
+			{
+				$response = new Response();
+				$response->headers->set('WWW-Authenticate', sprintf('Basic realm="%s"', 'site_login'));
+				$response->setStatusCode(401, 'Please sign in.');
+				return $response;
+			}
+		$username = $app->escape($app['request']->server->get('PHP_AUTH_USER', false));
+		$password = $app->escape($app['request']->server->get('PHP_AUTH_PW'));
+		$pwd = $app['db']->fetchAssoc('SELECT password FROM user WHERE email = :email', array(
+			'email' => $username,
+		));
+		var_dump($pwd);
+		echo "\n";
+		var_dump(sha1($password) === $pwd["password"]);
+		if (!empty($pwd) && sha1($password) === $pwd["password"])
+		    $app['session']->set('user', array('username' => $username));
+		else {
+			$response = new Response();
+			$response->headers->set('WWW-Authenticate', sprintf('Basic realm="%s"', 'site_login'));
+			$response->setStatusCode(401, 'Please sign in.');
+			return $response;
+		}
+	});
 // get delete url
-$app->delete('/users/{id}/', function ($id) use ($app) {
+$app->delete('/rest_etna/users/{id}/', function ($id) use ($app) {
 	$message = $app['db']->delete('user', array(
 	    'id' => $id,
 	));
@@ -36,7 +65,7 @@ $app->delete('/users/{id}/', function ($id) use ($app) {
 });
 
 # update url
-$app->put('/users/{id}/', function ($id) use ($app) {
+$app->put('/rest_etna/users/{id}/', function ($id) use ($app) {
 	$values = $app['request']->request->all();
 
 	$message = $app['db']->update('user',
@@ -52,7 +81,7 @@ $app->put('/users/{id}/', function ($id) use ($app) {
 });
 
 // get post url
-$app->post('/users/', function (Request $request) use ($app) {
+$app->post('/rest_etna/users/', function (Request $request) use ($app) {
 	$data = array("lastname", "firstname", "email", "password", "role");
 	$post = array();
 	# populate data
@@ -70,7 +99,7 @@ $app->post('/users/', function (Request $request) use ($app) {
 
 	# insert user
 	$sql = "INSERT INTO user (lastname, firstname, email, password, role) VALUES (?, ?, ?, ?, ?)";
-	$insert = $app['db']->executeQuery($sql, array($post['lastname'], $post['firstname'], $post['email'], $post['password'],  $post['role']));
+	$insert = $app['db']->executeQuery($sql, array($post['lastname'], $post['firstname'], $post['email'], sha1($post['password']),  $post['role']));
 	/*if ($insert)
 		{
 			$message =  array('status' => 501, 'message' => 'Error when saving data');
@@ -83,7 +112,7 @@ $app->post('/users/', function (Request $request) use ($app) {
 });
 
 // get route
-$app->get('/users/{id}/', function($id) use ($app) {
+$app->get('/rest_etna/users/{id}/', function($id) use ($app) {
 	$sql = "SELECT id, lastname, firstname, email, role FROM user WHERE id = ?";
 	$post = $app['db']->fetchAssoc($sql, array((int)$id));
 	
@@ -101,8 +130,8 @@ $app->get('/users/{id}/', function($id) use ($app) {
 	return $app->json($post);
 });
 
-$app->get('/user/{id}/', function($id) use ($app) {
-
+$app->get('/rest_etna/user/{id}/', function($id) use ($app)
+{
 	$sql = "SELECT id, lastname, firstname, email, role FROM user WHERE id = ?";
 	$post = $app['db']->fetchAssoc($sql, array((int)$id));
 	
@@ -122,7 +151,7 @@ $app->get('/user/{id}/', function($id) use ($app) {
 
 
 // general route & error handler
-$app->get('/', function() use ($app, $request) {
+$app->get('/rest_etna/', function() use ($app) {
 	return $app->json('');
 });
 
