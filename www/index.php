@@ -24,9 +24,9 @@ $app -> register(new Silex\Provider\DoctrineServiceProvider(),
 );
 
 // get delete url
-$app->delete('/user/', function ($id) {
+$app->delete('/user/{id}', function ($id) {
 	$sql = "DELETE * FROM user WHERE id = $id";
-	$message =  array('status' => 200, 'message' => 'Create new user');
+	$message =  array('status' => 200, 'message' => 'Deleting user');
 	//$message =  json_encode($insert);
 	return $app->json($message, 200);
 });
