@@ -24,7 +24,7 @@ $app -> register(new Silex\Provider\DoctrineServiceProvider(),
 );
 
 // get delete url
-$app->delete('/user/{id}/', function ($id) use ($app) {
+$app->delete('/users/{id}/', function ($id) use ($app) {
 	$message = $app['db']->delete('user', array(
 	    'id' => $id,
 	));
@@ -35,11 +35,26 @@ $app->delete('/user/{id}/', function ($id) use ($app) {
 		return $app->json($error, 500);
 });
 
+# update url
+$app->put('/users/{id}/', function ($id) use ($app) {
+	$values = $app['request']->request->all();
+
+	$message = $app['db']->update('user',
+    $values
+	, array(
+	    'id'   => $id,
+	));
+	$error =  array('status' => 500, 'message' => 'Something went wrong');
+	if ($message)
+		return $app->json( array('status' => 200, 'message' => 'Update done'), 200);
+	else
+		return $app->json($error, 500);
+});
+
 // get post url
 $app->post('/users/', function (Request $request) use ($app) {
 	$data = array("lastname", "firstname", "email", "password", "role");
 	$post = array();
-	# $request->request->all()
 	# populate data
 	foreach($data as $d)
 		$post[$d] = $request->get($d);
@@ -120,7 +135,7 @@ $app->error(function (\Exception $e, $code) use ($app) {
       $error = array('status' => 500, 'message' => 'internal error');
       break;
     default:
-      $error = array('message' => 'We are sorry, but something went terribly wrong.');
+      $error = array('message' => $code);
 			break;
   }
 
