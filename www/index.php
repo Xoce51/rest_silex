@@ -29,40 +29,42 @@ $app->register(new Silex\Provider\SessionServiceProvider());
 $before = function(Request $request, Silex\Application $app)
 {
 	if (!isset($_SERVER['PHP_AUTH_USER']))
-	{
-		$response = new Response();
-		$response->headers->set('WWW-Authenticate', sprintf('Basic realm="%s"', 'site_login'));
-		$response->setStatusCode(401, 'Please sign in.');
-		return $response;
-	}
+		{
+			$response = new Response();
+			$response->headers->set('WWW-Authenticate', sprintf('Basic realm="%s"', 'site_login'));
+			$response->setStatusCode(401, 'Please sign in.');
+			return $response;
+		}
 	$username = $app->escape($app['request']->server->get('PHP_AUTH_USER', false));
 	$password = $app->escape($app['request']->server->get('PHP_AUTH_PW'));
 	$pwd = $app['db']->fetchAssoc('SELECT password, role FROM user WHERE email = :email', array(
 		'email' => $username,
 	));
 	if (!empty($pwd) && sha1($password) === $pwd["password"])
-	$app['session']->set('user', array('username' => $username, 'role' => $pwd['role']));
-	else {
-		$response = new Response();
-		$response->headers->set('WWW-Authenticate', sprintf('Basic realm="%s"', 'site_login'));
-		$response->setStatusCode(401, 'Please sign in.');
-		return $response;
-	}
+		$app['session']->set('user', array('username' => $username, 'role' => $pwd['role']));
+	else
+		{
+			$response = new Response();
+			$response->headers->set('WWW-Authenticate', sprintf('Basic realm="%s"', 'site_login'));
+			$response->setStatusCode(401, 'Please sign in.');
+			return $response;
+		}
 };
 // get delete url
 $app->delete('/users/{id}/', function ($id) use ($app) {
 	$sql = "SELECT role FROM user WHERE id = :id";
 	$role = $app['db']->fetchAssoc($sql, array('id' =>  $id));
 	if ($role['role'] == 'admin' && $app['session']->get('user')["role"] != 'admin')
-	return $app->json(array('status' => 403, 'message' => '403 Forbidden'), 403);
+		return $app->json(array('status' => 403, 'message' => '403 Forbidden'), 403);
+	
 	$message = $app['db']->delete('user', array(
-	'id' => $id,
+		'id' => $id,
 	));
 	$error =  array('status' => 500, 'message' => 'Something went wrong');
 	if ($message)
-	return $app->json($message, 200);
+		return $app->json($message, 200);
 	else
-	return $app->json($error, 500);
+		return $app->json($error, 500);
 })
 ->before($before);
 
@@ -70,15 +72,16 @@ $app->delete('/users/{id}', function ($id) use ($app) {
 	$sql = "SELECT role FROM user WHERE id = :id";
 	$role = $app['db']->fetchAssoc($sql, array('id' =>  $id));
 	if ($role['role'] == 'admin' && $app['session']->get('user')["role"] != 'admin')
-	return $app->json(array('status' => 403, 'message' => '403 Forbidden'), 403);
+		return $app->json(array('status' => 403, 'message' => '403 Forbidden'), 403);
+	
 	$message = $app['db']->delete('user', array(
-	'id' => $id,
+		'id' => $id,
 	));
 	$error =  array('status' => 500, 'message' => 'Something went wrong');
 	if ($message)
-	return $app->json($message, 200);
+		return $app->json($message, 200);
 	else
-	return $app->json($error, 500);
+		return $app->json($error, 500);
 })
 ->before($before);
 
@@ -87,19 +90,20 @@ $app->put('/users/{id}/', function ($id) use ($app) {
 	$sql = "SELECT role FROM user WHERE id = :id";
 	$role = $app['db']->fetchAssoc($sql, array('id' =>  $id));
 	if ($role['role'] == 'admin' && $app['session']->get('user')["role"] != 'admin')
-	return $app->json(array('status' => 403, 'message' => '403 Forbidden'), 403);
+		return $app->json(array('status' => 403, 'message' => '403 Forbidden'), 403);
+	
 	$values = $app['request']->request->all();
 
 	$message = $app['db']->update('user',
-	$values
-	, array(
-	'id'   => $id,
+		$values
+		, array(
+			'id'   => $id,
 	));
 	$error =  array('status' => 500, 'message' => 'Something went wrong');
 	if ($message)
-	return $app->json( array('status' => 200, 'message' => 'Update done'), 200);
+		return $app->json( array('status' => 200, 'message' => 'Update done'), 200);
 	else
-	return $app->json($error, 500);
+		return $app->json($error, 500);
 })
 ->before($before);
 
@@ -108,7 +112,8 @@ $app->put('/users/{id}', function ($id) use ($app) {
 	$sql = "SELECT role FROM user WHERE id = :id";
 	$role = $app['db']->fetchAssoc($sql, array('id' =>  $id));
 	if ($role['role'] == 'admin' && $app['session']->get('user')["role"] != 'admin')
-	return $app->json(array('status' => 403, 'message' => '403 Forbidden'), 403);
+		return $app->json(array('status' => 403, 'message' => '403 Forbidden'), 403);
+	
 	$values = $app['request']->request->all();
 
 	$message = $app['db']->update('user',
@@ -129,7 +134,8 @@ $app->post('/users/', function (Request $request) use ($app) {
 	$sql = "SELECT role FROM user WHERE id = :id";
 	$role = $app['db']->fetchAssoc($sql, array('id' =>  $id));
 	if ($role['role'] == 'admin' && $app['session']->get('user')["role"] != 'admin')
-	return $app->json(array('status' => 403, 'message' => '403 Forbidden'), 403);
+		return $app->json(array('status' => 403, 'message' => '403 Forbidden'), 403);
+	
 	$data = array("lastname", "firstname", "email", "password", "role");
 	$post = array();
 	# populate data
@@ -148,15 +154,10 @@ $app->post('/users/', function (Request $request) use ($app) {
 	# insert user
 	$sql = "INSERT INTO user (lastname, firstname, email, password, role) VALUES (?, ?, ?, ?, ?)";
 	$insert = $app['db']->executeQuery($sql, array($post['lastname'], $post['firstname'], $post['email'], sha1($post['password']),  $post['role']));
-	/*if ($insert)
-	{
-	$message =  array('status' => 501, 'message' => 'Error when saving data');
-	return $app->json($message, 501);
-}
-* */
-$message =  array('status' => 200, 'message' => 'Create new user');
-//$message =  json_encode($insert);
-return $app->json($message, 200);
+
+	$message =  array('status' => 200, 'message' => 'Create new user');
+	//$message =  json_encode($insert);
+	return $app->json($message, 200);
 })
 ->before($before);
 
@@ -164,7 +165,8 @@ $app->post('/users', function (Request $request) use ($app) {
 	$sql = "SELECT role FROM user WHERE id = :id";
 	$role = $app['db']->fetchAssoc($sql, array('id' =>  $id));
 	if ($role['role'] == 'admin' && $app['session']->get('user')["role"] != 'admin')
-	return $app->json(array('status' => 403, 'message' => '403 Forbidden'), 403);
+		return $app->json(array('status' => 403, 'message' => '403 Forbidden'), 403);
+	
 	$data = array("lastname", "firstname", "email", "password", "role");
 	$post = array();
 	# populate data
@@ -183,15 +185,10 @@ $app->post('/users', function (Request $request) use ($app) {
 	# insert user
 	$sql = "INSERT INTO user (lastname, firstname, email, password, role) VALUES (?, ?, ?, ?, ?)";
 	$insert = $app['db']->executeQuery($sql, array($post['lastname'], $post['firstname'], $post['email'], sha1($post['password']),  $post['role']));
-	/*if ($insert)
-	{
-	$message =  array('status' => 501, 'message' => 'Error when saving data');
-	return $app->json($message, 501);
-}
-* */
-$message =  array('status' => 200, 'message' => 'Create new user');
-//$message =  json_encode($insert);
-return $app->json($message, 200);
+
+	$message =  array('status' => 200, 'message' => 'Create new user');
+	//$message =  json_encode($insert);
+	return $app->json($message, 200);
 })
 ->before($before);
 
@@ -205,7 +202,7 @@ $app->get('/users/{id}/', function($id) use ($app) {
 		$error = array('status' => 404, 'message' => 'Not found');
 		return $app->json($error, 404);
 	}
-	else if ($post['role'] == 'admin')
+	else if ($post['role'] == 'admin' && $app['session']->get('user')["role"] != 'admin')
 	{
 		$error = $error = array('status' => 401, 'message' => 'Not found');
 		return $app->json($error, 401);
@@ -225,7 +222,7 @@ $app->get('/user/{id}/', function($id) use ($app)
 		$error = array('status' => 404, 'message' => 'not found');
 		return $app->json($error, 404);
 	}
-	else if ($post['role'] == 'admin')
+	else if ($post['role'] == 'admin' && $app['session']->get('user')["role"] != 'admin')
 	{
 		$error = $error = array('status' => 401, 'message' => 'Not found');
 		return $app->json($error, 401);
