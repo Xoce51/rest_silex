@@ -50,7 +50,19 @@ $before = function(Request $request, Silex\Application $app)
 			}
 	};
 // get delete url
-$app->delete('/rest_etna/users/{id}/', function ($id) use ($app) {
+$app->delete('/users/{id}/', function ($id) use ($app) {
+	$message = $app['db']->delete('user', array(
+	    'id' => $id,
+	));
+	$error =  array('status' => 500, 'message' => 'Something went wrong');
+	if ($message)
+		return $app->json($message, 200);
+	else
+		return $app->json($error, 500);
+})
+->before($before);
+
+$app->delete('/users/{id}', function ($id) use ($app) {
 	$message = $app['db']->delete('user', array(
 	    'id' => $id,
 	));
@@ -63,7 +75,24 @@ $app->delete('/rest_etna/users/{id}/', function ($id) use ($app) {
 ->before($before);
 
 # update url
-$app->put('/rest_etna/users/{id}/', function ($id) use ($app) {
+$app->put('/users/{id}/', function ($id) use ($app) {
+	$values = $app['request']->request->all();
+
+	$message = $app['db']->update('user',
+    $values
+	, array(
+	    'id'   => $id,
+	));
+	$error =  array('status' => 500, 'message' => 'Something went wrong');
+	if ($message)
+		return $app->json( array('status' => 200, 'message' => 'Update done'), 200);
+	else
+		return $app->json($error, 500);
+})
+->before($before);
+
+# update url
+$app->put('/users/{id}', function ($id) use ($app) {
 	$values = $app['request']->request->all();
 
 	$message = $app['db']->update('user',
@@ -80,7 +109,38 @@ $app->put('/rest_etna/users/{id}/', function ($id) use ($app) {
 ->before($before);
 
 // get post url
-$app->post('/rest_etna/users/', function (Request $request) use ($app) {
+$app->post('/users/', function (Request $request) use ($app) {
+	$data = array("lastname", "firstname", "email", "password", "role");
+	$post = array();
+	# populate data
+	foreach($data as $d)
+		$post[$d] = $request->get($d);
+
+	# check if user exist
+	$sql = "SELECT id FROM user WHERE lastname = ? AND firstname = ?";
+	$save = $app['db']->fetchAssoc($sql, array($post['lastname'], $post['firstname']));
+	if ($save)
+		{
+			$message =  array('status' => 401, 'message' => 'User already exist');
+			return $app->json($message, 401);
+		}
+
+	# insert user
+	$sql = "INSERT INTO user (lastname, firstname, email, password, role) VALUES (?, ?, ?, ?, ?)";
+	$insert = $app['db']->executeQuery($sql, array($post['lastname'], $post['firstname'], $post['email'], sha1($post['password']),  $post['role']));
+	/*if ($insert)
+		{
+			$message =  array('status' => 501, 'message' => 'Error when saving data');
+			return $app->json($message, 501);
+		}
+	 * */
+  $message =  array('status' => 200, 'message' => 'Create new user');
+	//$message =  json_encode($insert);
+  return $app->json($message, 200);
+})
+->before($before);
+
+$app->post('/users', function (Request $request) use ($app) {
 	$data = array("lastname", "firstname", "email", "password", "role");
 	$post = array();
 	# populate data
@@ -112,7 +172,7 @@ $app->post('/rest_etna/users/', function (Request $request) use ($app) {
 ->before($before);
 
 // get route
-$app->get('/rest_etna/users/{id}/', function($id) use ($app) {
+$app->get('/users/{id}/', function($id) use ($app) {
 	$sql = "SELECT id, lastname, firstname, email, role FROM user WHERE id = ?";
 	$post = $app['db']->fetchAssoc($sql, array((int)$id));
 	
@@ -131,7 +191,7 @@ $app->get('/rest_etna/users/{id}/', function($id) use ($app) {
 })
 ->before($before);
 
-$app->get('/rest_etna/user/{id}/', function($id) use ($app)
+$app->get('/user/{id}/', function($id) use ($app)
 {
 	$sql = "SELECT id, lastname, firstname, email, role FROM user WHERE id = ?";
 	$post = $app['db']->fetchAssoc($sql, array((int)$id));
@@ -153,7 +213,7 @@ $app->get('/rest_etna/user/{id}/', function($id) use ($app)
 
 
 // general route & error handler
-$app->get('/rest_etna/', function() use ($app) {
+$app->get('/', function() use ($app) {
 	return $app->json('');
 })
 ->before($before);
