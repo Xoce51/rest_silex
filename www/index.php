@@ -240,7 +240,7 @@ $app->error(function (\Exception $e, $code) use ($app) {
 
 	return $app->json($error);
 });
-$auth = function (Request $request, Silex\Application $app)
+$auth = function (Request $request) use ($app)
 	{
 		if (!$app['session']->get('user'))
 			return $app->json(array('status' => 401, 'message' => 'Unauthorized'), 401);
