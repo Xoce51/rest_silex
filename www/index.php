@@ -6,7 +6,7 @@ use \Doctrine\Common\Cache\ApcCache;
 use \Doctrine\Common\Cache\ArrayCache;
 
 $app = new Silex\Application();
-//$app['debug'] = true;
+$app['debug'] = true;
 
 // Register Doctrine DBAL
 $app->register(new Silex\Provider\DoctrineServiceProvider(),
@@ -25,6 +25,33 @@ array(
 // use session
 $app->register(new Silex\Provider\SessionServiceProvider());
 
+$auth = function (Request $request, Silex\Application $app)
+	{
+		if (!$app['session']->get('user'))
+			return $app->json(array('status' => 401, 'message' => 'Unauthorized'), 401);
+	};
+// authentification
+$app->before(function(Request $request) use($app)
+	{
+		if ($app['session']->get('user'))
+			return (true);
+		if (!isset($_SERVER['PHP_AUTH_USER']))
+			{
+				$response = new Response();
+				$response->headers->set('WWW-Authenticate', sprintf('Basic realm="%s"', 'site_login'));
+				$response->setStatusCode(401, 'Please sign in.');
+				return $response;
+			}
+		$username = $app['request']->server->get('PHP_AUTH_USER', false);
+		$password = $app['request']->server->get('PHP_AUTH_PW');
+		$pwd = $app['db']->fetchAssoc('SELECT password, role FROM user WHERE email = :email', array(
+			'email' => $username,
+		));
+		if (!empty($pwd) && sha1($password) === $pwd["password"])
+			$app['session']->set('user', array('username' => $username, 'role' => $pwd['role']));
+	}
+);
+
 // get delete url
 $app->delete('/users/{id}/', function ($id) use ($app) {
 	$sql = "SELECT role FROM user WHERE id = :id";
@@ -35,12 +62,12 @@ $app->delete('/users/{id}/', function ($id) use ($app) {
 	$message = $app['db']->delete('user', array(
 		'id' => $id,
 	));
-	$error =  array('status' => 500, 'message' => 'Something went wrong');
 	if ($message)
 		return $app->json($message, 200);
 	else
-		return $app->json($error, 500);
-});
+		return $app->json(array('status' => 500, 'message' => 'Something went wrong'), 500);
+})
+->before($auth);
 $app->delete('/users/{id}', function ($id) use ($app) {
 	$sql = "SELECT role FROM user WHERE id = :id";
 	$role = $app['db']->fetchAssoc($sql, array('id' =>  $id));
@@ -50,12 +77,12 @@ $app->delete('/users/{id}', function ($id) use ($app) {
 	$message = $app['db']->delete('user', array(
 		'id' => $id,
 	));
-	$error =  array('status' => 500, 'message' => 'Something went wrong');
 	if ($message)
 		return $app->json($message, 200);
 	else
-		return $app->json($error, 500);
-});
+		return $app->json(array('status' => 500, 'message' => 'Something went wrong'), 500);
+})
+->before($auth);
 
 # update url
 $app->put('/users/{id}/', function ($id) use ($app) {
@@ -71,12 +98,12 @@ $app->put('/users/{id}/', function ($id) use ($app) {
 		, array(
 			'id'   => $id,
 	));
-	$error =  array('status' => 500, 'message' => 'Something went wrong');
 	if ($message)
 		return $app->json( array('status' => 200, 'message' => 'Update done'), 200);
 	else
-		return $app->json($error, 500);
-});
+		return $app->json(array('status' => 500, 'message' => 'Something went wrong'), 500);
+})
+->before($auth);
 $app->put('/users/{id}', function ($id) use ($app) {
 	$sql = "SELECT role FROM user WHERE id = :id";
 	$role = $app['db']->fetchAssoc($sql, array('id' =>  $id));
@@ -90,12 +117,12 @@ $app->put('/users/{id}', function ($id) use ($app) {
 		, array(
 			'id'   => $id,
 	));
-	$error =  array('status' => 500, 'message' => 'Something went wrong');
 	if ($message)
-		return $app->json( array('status' => 200, 'message' => 'Update done'), 200);
+		return $app->json(array('status' => 200, 'message' => 'Update done'), 200);
 	else
-		return $app->json($error, 500);
-});
+		return $app->json(array('status' => 500, 'message' => 'Something went wrong'), 500);
+})
+->before($auth);
 
 // get post url
 $app->post('/users/', function (Request $request) use ($app) {
@@ -120,10 +147,9 @@ $app->post('/users/', function (Request $request) use ($app) {
 	$sql = "INSERT INTO user (lastname, firstname, email, password, role) VALUES (?, ?, ?, ?, ?)";
 	$insert = $app['db']->executeQuery($sql, array($post['lastname'], $post['firstname'], $post['email'], sha1($post['password']),  $post['role']));
 
-	$message =  array('status' => 200, 'message' => 'Create new user');
-	//$message =  json_encode($insert);
-	return $app->json($message, 200);
-});
+	return $app->json(array('status' => 200, 'message' => 'Create new user'), 200);
+})
+->before($auth);
 
 $app->post('/users', function (Request $request) use ($app) {
 	$sql = "SELECT role FROM user WHERE id = :id";
@@ -148,7 +174,8 @@ $app->post('/users', function (Request $request) use ($app) {
 	$insert = $app['db']->executeQuery($sql, array($post['lastname'], $post['firstname'], $post['email'], sha1($post['password']),  $post['role']));
 
 	return $app->json(array('status' => 200, 'message' => 'Create new user'), 200);
-});
+})
+->before($auth);
 
 // get route
 $app->get('/users/{id}/', function($id) use ($app) {
@@ -163,7 +190,6 @@ $app->get('/users/{id}/', function($id) use ($app) {
 	return $app->json($post);
 })
 ->before($auth);
-
 $app->get('/user/{id}/', function($id) use ($app)
 {
 	$sql = "SELECT id, lastname, firstname, email, role FROM user WHERE id = ?";
@@ -182,7 +208,8 @@ $app->get('/user/{id}/', function($id) use ($app)
 // general route & error handler
 $app->get('/', function() use ($app) {
 	return $app->json('');
-});
+})
+->before($auth);
 
 $app->error(function (\Exception $e, $code) use ($app) {
 	switch ($code) {
@@ -196,33 +223,8 @@ $app->error(function (\Exception $e, $code) use ($app) {
 			$error = array('message' => $code.' '.$e->getMessage());
 			break;
 	}
-
 	return $app->json($error);
 });
-$auth = function (Request $request, Silex\Application $app)
-	{
-		if (!$app['session']->get('user'))
-			return $app->json(array('status' => 401, 'message' => 'Unauthorized'), 401);
-	};
-// authentification
-$app->before(function(Request $request) use ($app)
-	{
-		if ($app['session']->get('user'))
-			return (true);
-		if (!isset($_SERVER['PHP_AUTH_USER']))
-			{
-				$response = new Response();
-				$response->headers->set('WWW-Authenticate', sprintf('Basic realm="%s"', 'site_login'));
-				$response->setStatusCode(401, 'Please sign in.');
-				return $response;
-			}
-		$username = $app['request']->server->get('PHP_AUTH_USER', false);
-		$password = $app['request']->server->get('PHP_AUTH_PW');
-		$pwd = $app['db']->fetchAssoc('SELECT password, role FROM user WHERE email = :email', array(
-			'email' => $username,
-		));
-		if (!empty($pwd) && sha1($password) === $pwd["password"])
-			$app['session']->set('user', array('username' => $username, 'role' => $pwd['role']));
-	});
+
 $app->run();
 ?>
