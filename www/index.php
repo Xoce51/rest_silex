@@ -26,7 +26,7 @@ array(
 $app->register(new Silex\Provider\SessionServiceProvider());
 
 // authentification
-$app->before(function(Request $request) use ($app)
+$app->before(function(Request $request)
 {
 	if ($app['session']->get('user'))
 		return (true);
