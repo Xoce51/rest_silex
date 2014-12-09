@@ -26,7 +26,7 @@ array(
 $app->register(new Silex\Provider\SessionServiceProvider());
 
 // authentification
-$before = function(Request $request, Silex\Application $app)
+$app->before(function(Request $request, Silex\Application $app)
 {
 	if (!isset($_SERVER['PHP_AUTH_USER']))
 		{
@@ -42,14 +42,7 @@ $before = function(Request $request, Silex\Application $app)
 	));
 	if (!empty($pwd) && sha1($password) === $pwd["password"])
 		$app['session']->set('user', array('username' => $username, 'role' => $pwd['role']));
-	else
-		{
-			$response = new Response();
-			$response->headers->set('WWW-Authenticate', sprintf('Basic realm="%s"', 'site_login'));
-			$response->setStatusCode(401, 'Please sign in.');
-			return $response;
-		}
-};
+});
 // get delete url
 $app->delete('/users/{id}/', function ($id) use ($app) {
 	$sql = "SELECT role FROM user WHERE id = :id";
@@ -65,8 +58,7 @@ $app->delete('/users/{id}/', function ($id) use ($app) {
 		return $app->json($message, 200);
 	else
 		return $app->json($error, 500);
-})
-->before($before);
+});
 
 $app->delete('/users/{id}', function ($id) use ($app) {
 	$sql = "SELECT role FROM user WHERE id = :id";
@@ -82,8 +74,7 @@ $app->delete('/users/{id}', function ($id) use ($app) {
 		return $app->json($message, 200);
 	else
 		return $app->json($error, 500);
-})
-->before($before);
+});
 
 # update url
 $app->put('/users/{id}/', function ($id) use ($app) {
@@ -104,8 +95,7 @@ $app->put('/users/{id}/', function ($id) use ($app) {
 		return $app->json( array('status' => 200, 'message' => 'Update done'), 200);
 	else
 		return $app->json($error, 500);
-})
-->before($before);
+});
 
 # update url
 $app->put('/users/{id}', function ($id) use ($app) {
@@ -126,8 +116,7 @@ $app->put('/users/{id}', function ($id) use ($app) {
 	return $app->json( array('status' => 200, 'message' => 'Update done'), 200);
 	else
 	return $app->json($error, 500);
-})
-->before($before);
+});
 
 // get post url
 $app->post('/users/', function (Request $request) use ($app) {
@@ -158,8 +147,7 @@ $app->post('/users/', function (Request $request) use ($app) {
 	$message =  array('status' => 200, 'message' => 'Create new user');
 	//$message =  json_encode($insert);
 	return $app->json($message, 200);
-})
-->before($before);
+});
 
 $app->post('/users', function (Request $request) use ($app) {
 	$sql = "SELECT role FROM user WHERE id = :id";
@@ -189,8 +177,7 @@ $app->post('/users', function (Request $request) use ($app) {
 	$message =  array('status' => 200, 'message' => 'Create new user');
 	//$message =  json_encode($insert);
 	return $app->json($message, 200);
-})
-->before($before);
+});
 
 // get route
 $app->get('/users/{id}/', function($id) use ($app) {
@@ -210,7 +197,7 @@ $app->get('/users/{id}/', function($id) use ($app) {
 	$post['id'] = (int) $post['id'];
 	return $app->json($post);
 })
-->before($before);
+->before($auth);
 
 $app->get('/user/{id}/', function($id) use ($app)
 {
@@ -230,14 +217,13 @@ $app->get('/user/{id}/', function($id) use ($app)
 	$post['id'] = (int) $post['id'];
 	return $app->json($post);
 })
-->before($before);
+->before($auth);
 
 
 // general route & error handler
 $app->get('/', function() use ($app) {
 	return $app->json('');
-})
-->before($before);
+});
 
 $app->error(function (\Exception $e, $code) use ($app) {
 	switch ($code) {
@@ -254,5 +240,10 @@ $app->error(function (\Exception $e, $code) use ($app) {
 
 	return $app->json($error);
 });
+$auth = function (Request $request, Application $app)
+	{
+		if (!$app['session']->get('user'))
+			return $app->json(array('status' => 401, 'message' => 'Unauthorized'), 401);
+	};
 $app->run();
 ?>
