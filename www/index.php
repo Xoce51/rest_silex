@@ -28,6 +28,8 @@ $app->register(new Silex\Provider\SessionServiceProvider());
 // authentification
 $app->before(function(Request $request) use ($app)
 {
+	if ($app['session']->get('user'))
+		return (true);
 	if (!isset($_SERVER['PHP_AUTH_USER']))
 		{
 			$response = new Response();
