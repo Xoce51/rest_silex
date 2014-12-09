@@ -205,7 +205,7 @@ $auth = function (Request $request, Silex\Application $app)
 			return $app->json(array('status' => 401, 'message' => 'Unauthorized'), 401);
 	};
 // authentification
-$app->before(function(Request $request,  Silex\Application $app)
+$app->before(function(Request $request) use ($app)
 	{
 		if ($app['session']->get('user'))
 			return (true);
