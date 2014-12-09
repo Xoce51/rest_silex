@@ -25,27 +25,6 @@ array(
 // use session
 $app->register(new Silex\Provider\SessionServiceProvider());
 
-// authentification
-$app->before(function(Request $request)
-{
-	if ($app['session']->get('user'))
-		return (true);
-	if (!isset($_SERVER['PHP_AUTH_USER']))
-		{
-			$response = new Response();
-			$response->headers->set('WWW-Authenticate', sprintf('Basic realm="%s"', 'site_login'));
-			$response->setStatusCode(401, 'Please sign in.');
-			return $response;
-		}
-	$username = $app['request']->server->get('PHP_AUTH_USER', false);
-	$password = $app['request']->server->get('PHP_AUTH_PW');
-	$pwd = $app['db']->fetchAssoc('SELECT password, role FROM user WHERE email = :email', array(
-		'email' => $username,
-	));
-	if (!empty($pwd) && sha1($password) === $pwd["password"])
-		$app['session']->set('user', array('username' => $username, 'role' => $pwd['role']));
-});
-
 // get delete url
 $app->delete('/users/{id}/', function ($id) use ($app) {
 	$sql = "SELECT role FROM user WHERE id = :id";
@@ -220,10 +199,30 @@ $app->error(function (\Exception $e, $code) use ($app) {
 
 	return $app->json($error);
 });
-$auth = function (Request $request, Response $response, Silex\Application $app)
+$auth = function (Request $request, Silex\Application $app)
 	{
 		if (!$app['session']->get('user'))
 			return $app->json(array('status' => 401, 'message' => 'Unauthorized'), 401);
 	};
+// authentification
+$app->before(function(Request $request,  Silex\Application $app)
+	{
+		if ($app['session']->get('user'))
+			return (true);
+		if (!isset($_SERVER['PHP_AUTH_USER']))
+			{
+				$response = new Response();
+				$response->headers->set('WWW-Authenticate', sprintf('Basic realm="%s"', 'site_login'));
+				$response->setStatusCode(401, 'Please sign in.');
+				return $response;
+			}
+		$username = $app['request']->server->get('PHP_AUTH_USER', false);
+		$password = $app['request']->server->get('PHP_AUTH_PW');
+		$pwd = $app['db']->fetchAssoc('SELECT password, role FROM user WHERE email = :email', array(
+			'email' => $username,
+		));
+		if (!empty($pwd) && sha1($password) === $pwd["password"])
+			$app['session']->set('user', array('username' => $username, 'role' => $pwd['role']));
+	});
 $app->run();
 ?>
