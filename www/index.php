@@ -6,7 +6,7 @@ use \Doctrine\Common\Cache\ApcCache;
 use \Doctrine\Common\Cache\ArrayCache;
 
 $app = new Silex\Application();
-$app['debug'] = true;
+//$app['debug'] = true;
 
 // Register Doctrine DBAL
 $app->register(new Silex\Provider\DoctrineServiceProvider(),
