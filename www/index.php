@@ -26,7 +26,7 @@ array(
 $app->register(new Silex\Provider\SessionServiceProvider());
 
 // authentification
-$app->before(function(Request $request, Silex\Application $app)
+$app->before(function(Request $request)
 {
 	if (!isset($_SERVER['PHP_AUTH_USER']))
 		{
@@ -240,7 +240,7 @@ $app->error(function (\Exception $e, $code) use ($app) {
 
 	return $app->json($error);
 });
-$auth = function (Request $request) use ($app)
+$auth = function (Request $request, Response $response, Silex\Application $app)
 	{
 		if (!$app['session']->get('user'))
 			return $app->json(array('status' => 401, 'message' => 'Unauthorized'), 401);
